@@ -1,0 +1,12 @@
+{
+  "name": "exercice-1",
+  "version": "1.0.0",
+  "description": "Exercice 1 - Valider un projet CI/CD",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

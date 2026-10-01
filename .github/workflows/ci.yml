@@ -1,0 +1,46 @@
+name: CI - Valider un projet
+
+on:
+  push:
+
+jobs:
+  validate:
+    name: Validation du projet
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Récupérer le code
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      # 2. Installer Node.js
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 3. Mettre en place le cache npm
+      - name: Mettre en place le cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            npm-
+
+      # 4. Installer les dépendances
+      - name: Installer les dépendances
+        run: npm ci
+
+      # 5. Lancer les tests
+      - name: Lancer les tests
+        run: npm test
+
+      # 6. Écrire le statut du job et la ref du commit dans GITHUB_STEP_SUMMARY
+      - name: Écrire le résumé du job
+        if: always()
+        run: |
+          echo "## Résultat du workflow" >> $GITHUB_STEP_SUMMARY
+          echo "- **Statut du job :** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Ref :** ${{ github.ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit :** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
