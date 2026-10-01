@@ -11,17 +11,17 @@ jobs:
     steps:
       # 1. Récupérer le code
       - name: Checkout du code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # 2. Installer Node.js
       - name: Installer Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 20
 
       # 3. Mettre en place le cache npm
       - name: Mettre en place le cache npm
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.npm
           key: npm-${{ hashFiles('package-lock.json') }}
