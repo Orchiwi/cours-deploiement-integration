@@ -1,0 +1,119 @@
+name: Exercice 3 - Construire, tester et déployer
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environnement de déploiement'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build de l'application
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v7
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 20
+
+      - name: Mettre en place le cache npm
+        uses: actions/cache@v5
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            npm-
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Lancer le build
+        run: npm run build
+
+      - name: Sauvegarder l'artefact
+        uses: actions/upload-artifact@v7
+        with:
+          name: application
+          path: dist/
+
+  test:
+    name: Tests (${{ matrix.os }} - Node ${{ matrix.node }})
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        node: [20, 22]
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v7
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Mettre en place le cache npm
+        uses: actions/cache@v5
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ matrix.node }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-${{ matrix.node }}-
+            npm-${{ runner.os }}-
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Récupérer l'artefact
+        uses: actions/download-artifact@v7
+        with:
+          name: application
+          path: dist/
+
+      - name: Lancer les tests
+        run: npm test
+
+  deploy:
+    name: Déploiement vers ${{ inputs.environment }}
+    needs: test
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v7
+
+      - name: Récupérer l'artefact
+        uses: actions/download-artifact@v7
+        with:
+          name: application
+          path: dist/
+
+      - name: Afficher la variable d'Environment API_URL
+        run: |
+          echo "API_URL : ${{ vars.API_URL }}"
+
+      - name: Résumer le déploiement
+        if: always()
+        run: |
+          echo "## Résumé du Déploiement" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environnement cible :** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **API_URL :** ${{ vars.API_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit :** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Statut :** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Déclenché par :** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Date :** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
