@@ -2,3 +2,4 @@ node_modules/
 .npm/
 .output.txt
 .idea/
+dist/

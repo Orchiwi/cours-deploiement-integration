@@ -4,7 +4,8 @@
   "description": "Exercice 1 - Valider un projet CI/CD",
   "main": "src/index.js",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "build": "node build.js"
   },
   "keywords": [],
   "author": "",

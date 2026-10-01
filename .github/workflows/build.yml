@@ -1,0 +1,72 @@
+name: Exercice 2 - Produire un artefact
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build et sauvegarde de l'artefact
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Récupérer le code
+      - name: Checkout du code
+        uses: actions/checkout@v7
+
+      # 2. Préparer l'environnement
+      - name: Installer Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 20
+
+      # 3. Mettre en place le cache npm
+      - name: Mettre en place le cache npm
+        uses: actions/cache@v5
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            npm-
+
+      # 4. Installer les dépendances
+      - name: Installer les dépendances
+        run: npm ci
+
+      # 5. Lancer le build
+      - name: Lancer le build
+        run: npm run build
+
+      # 6. Vérifier que le fichier de build existe
+      - name: Vérifier que le fichier de build existe
+        run: |
+          if [ ! -d "dist" ] || [ ! -f "dist/index.js" ]; then
+            echo "::error file=dist/index.js::Le fichier de build dist/index.js est introuvable !"
+            exit 1
+          fi
+          echo "Vérification réussie : dist/index.js existe."
+
+      # 7. Sauvegarder dist/ comme artefact
+      - name: Sauvegarder l'artefact
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-artifact
+          path: dist/
+
+      # 8. Écrire un résumé du build
+      - name: Écrire le résumé du build
+        if: always()
+        run: |
+          echo "## Résumé du Build" >> $GITHUB_STEP_SUMMARY
+          echo "- **Statut :** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Déclenché par :** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Événement :** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branche / Ref :** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit :** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Date :** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          if [ -d "dist" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Contenu de dist/" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            ls -la dist/ >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
